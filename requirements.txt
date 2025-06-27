@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+httpx
+boto3
+botocore
+requests
+transformers
+pillow
+faiss-cpu
+grob
+torch
+supabase
+ftfy
+open_clip_torch
