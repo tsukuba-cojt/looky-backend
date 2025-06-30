@@ -3,17 +3,17 @@ from botocore.exceptions import ClientError, BotoCoreError, NoCredentialsError
 import logging
 import os
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
-
-REGION_NAME = os.getenv("AWS_REGION_NAME")
-S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME")
-ACCESS_KEY = os.getenv("AWS_IAM_ACCESS_KEY")
-SECRET_KEY = os.getenv("AWS_IAM_SECRET_KEY")
+from config import settings
 
 logger = logging.getLogger(__name__)
-s3_client = boto3.client("s3", region_name=REGION_NAME, aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY)
+
+# 設定クラスからAWS設定を取得
+s3_client = boto3.client(
+    "s3", 
+    region_name=settings.aws_region_name, 
+    aws_access_key_id=settings.aws_iam_access_key, 
+    aws_secret_access_key=settings.aws_iam_secret_key
+)
 
 def get_image_from_s3(bucket_name: str, object_key: str) -> bytes:
     """
@@ -49,7 +49,12 @@ def get_image_from_s3(bucket_name: str, object_key: str) -> bytes:
 # presigned urlを生成する.
 # object_keyの例は`images/${new Date().toISOString().split('T')[0].replace(/-/g, '/')}/${timestamp}_${randomString}.${extension}`;
 def generate_presigned_url_for_get(bucket_name: str, object_key: str, expiration: int = 3600) -> str:
-    s3_client = boto3.client("s3", region_name=REGION_NAME, aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY)
+    s3_client = boto3.client(
+        "s3", 
+        region_name=settings.aws_region_name, 
+        aws_access_key_id=settings.aws_iam_access_key, 
+        aws_secret_access_key=settings.aws_iam_secret_key
+    )
 
     url = s3_client.generate_presigned_url(
         ClientMethod="get_object",
@@ -59,7 +64,12 @@ def generate_presigned_url_for_get(bucket_name: str, object_key: str, expiration
     return url
 
 def generate_presigned_url_for_upload(bucket_name: str, object_key: str, expiration: int = 3600) -> str:
-    s3_client = boto3.client("s3", region_name=REGION_NAME, aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY)
+    s3_client = boto3.client(
+        "s3", 
+        region_name=settings.aws_region_name, 
+        aws_access_key_id=settings.aws_iam_access_key, 
+        aws_secret_access_key=settings.aws_iam_secret_key
+    )
     
     url = s3_client.generate_presigned_url(
         ClientMethod="put_object",
@@ -96,9 +106,9 @@ def download_if_needed(bucket_name: str, object_key: str, local_path: str) -> No
         print(f"[startup] {local_path} already exists")
         return
     session = boto3.Session(
-        aws_access_key_id=ACCESS_KEY,
-        aws_secret_access_key=SECRET_KEY,
-        region_name=REGION_NAME,
+        aws_access_key_id=settings.aws_iam_access_key,
+        aws_secret_access_key=settings.aws_iam_secret_key,
+        region_name=settings.aws_region_name,
     )
     s3 = session.resource("s3")
     try:

@@ -12,3 +12,4 @@ torch
 supabase
 ftfy
 open_clip_torch
+pydantic-settings
