@@ -4,6 +4,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV TRANSFORMERS_CACHE=/cache/huggingface
 
 WORKDIR /backend
+ENV PORT=8000
 
 # 先に依存関係をインストールしておくと、毎回のインストールにならない
 COPY requirements.txt .
@@ -12,5 +13,5 @@ RUN uv pip install --no-cache-dir -r requirements.txt --system --verbose
 
 # WORKDIRで指定しているので二つ目の.が/backendを指す
 COPY . .
-# , "--log-level", "debug"でログレベルをdebugにする
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+# 環境変数を使用するためにsh -cを使用
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]

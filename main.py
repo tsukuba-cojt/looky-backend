@@ -128,7 +128,7 @@ async def get_recommendation_clothes(
     """
     user_result = db.get_user_by_id(request.user_id)
     if not user_result.data:
-        raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+        raise HTTPException(status_code=400, detail="ユーザーが見つかりません")
     body_object_key = user_result.data[0]["body_url"]
     if not body_object_key:
         raise HTTPException(status_code=400, detail="body_urlがありません")
