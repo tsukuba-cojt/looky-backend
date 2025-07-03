@@ -1,0 +1,7 @@
+# Git
+.git
+.gitignore
+
+#Python
+.ipynb
+__pycache__/
