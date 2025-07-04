@@ -32,7 +32,7 @@ class Database:
     
     def get_user_preferences(self, user_id: str):
         """ユーザーの好みデータを取得"""
-        return self._client.table("t_user_vton").select().eq("feedback_flag", 1).eq("user_id", user_id).execute()
+        return self._client.table("t_user_vton").select().gte("feedback_flag", 100).eq("user_id", user_id).execute()
     
     def get_vton_by_id(self, vton_id: str):
         """VTON IDでVTON情報を取得"""
