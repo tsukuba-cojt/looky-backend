@@ -186,8 +186,7 @@ async def get_recommendation_clothes(
         vton_id = vton_result.data[0]["id"]
         db.create_user_vton(
             user_id=request.user_id,
-            vton_id=vton_id,
-            feedback_flag=0
+            vton_id=vton_id
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"VTONの生成に失敗しました: {str(e)}")
@@ -217,8 +216,7 @@ async def get_recommendation_clothes(
     #         # ユーザーVTONレコード作成
     #         db.create_user_vton(
     #             user_id=request.user_id,
-    #             vton_id=vton_id,
-    #             feedback_flag=0
+    #             vton_id=vton_id
     #         )
     #         object_key_list.append(object_key)
     #     except Exception as e:

@@ -32,7 +32,7 @@ class Database:
     
     def get_user_preferences(self, user_id: str):
         """ユーザーの好みデータを取得"""
-        return self._client.table("t_user_vton").select().gte("feedback_flag", 100).eq("user_id", user_id).execute()
+        return self._client.table("t_user_vton").select().or_("feedback.eq.like,feedback.eq.love").eq("user_id", user_id).execute()
     
     def get_vton_by_id(self, vton_id: str):
         """VTON IDでVTON情報を取得"""
@@ -53,12 +53,11 @@ class Database:
             "object_key": object_key,
         }).execute()
     
-    def create_user_vton(self, user_id: str, vton_id: str, feedback_flag: int = 0):
+    def create_user_vton(self, user_id: str, vton_id: str):
         """ユーザーVTONレコードを作成"""
         return self._client.table("t_user_vton").insert({
             "user_id": user_id,
-            "vton_id": vton_id,
-            "feedback_flag": feedback_flag
+            "vton_id": vton_id
         }).execute()
 
 
