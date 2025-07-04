@@ -4,15 +4,16 @@
 docker build -t looky-backend -f Dockerfile .
 
 # 2. コンテナを実行
-docker run -d \
+docker run \
   --name looky-backend \
-  -p 8080:8000 \
+  -p 8000:8000 \
   -v $(pwd):/backend \
+  --add-host=host.docker.internal:host-gateway \
   --restart unless-stopped \
   looky-backend
 
 # 2.5 コンテナを実行(Windows)
-docker run --name looky-backend -p 8080:8000 -v ${PWD}:/backend --restart unless-stopped looky-backend
+docker run --name looky-backend -p 8000:8000 -v ${PWD}:/backend --restart unless-stopped looky-backend
 
 
 # コンテナを停止

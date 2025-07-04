@@ -167,25 +167,36 @@ async def get_recommendation_clothes(
     if not clothes_id:
         raise HTTPException(status_code=404, detail="洋服が見つかりません")
     clothes_key = clothes_id.data[0]["image_url"]
+    actual_clothes_id = clothes_id.data[0]["id"]  # 実際のIDを取得
     try:
         fitdit_response = await execute_fitdit(
             body_image_path=body_object_key,
             clothes_image_path=clothes_key,
             clothes_type="Upper-body"
         )
+        print(f"main.py fitdit_response型: {type(fitdit_response)}")
+        print(f"main.py fitdit_response内容: {fitdit_response}")
         object_key = fitdit_response["object_key"]
+        print(f"object_key: {object_key}")
+        print(f"actual_clothes_id: {actual_clothes_id}")
         vton_result = db.create_vton(
-            tops_id=clothes_id,
+            tops_id=actual_clothes_id,  # 実際のIDを使用
             image_url=object_key
         )
+        print(f"vton_result: {vton_result}")
         vton_id = vton_result.data[0]["id"]
+        print(f"vton_id: {vton_id}")
         db.create_user_vton(
             user_id=request.user_id,
             vton_id=vton_id,
             feedback_flag=0
         )
+        print("データベース操作完了")
         
     except Exception as e:
+        print(f"エラー詳細: {type(e).__name__}: {str(e)}")
+        import traceback
+        print(f"スタックトレース: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"VTONの生成に失敗しました: {str(e)}")
 
     # indices = retrieve_similar_images_by_vector(vector=preference_vector, index=index, top_k=3)

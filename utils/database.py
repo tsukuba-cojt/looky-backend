@@ -46,11 +46,11 @@ class Database:
         """洋服IDリストで洋服情報を取得"""
         return self._client.table("t_clothes").select().in_("id", clothes_ids).execute()
     
-    def create_vton(self, tops_id: int, image_url: str):
+    def create_vton(self, tops_id: int, object_key: str):
         """VTONレコードを作成"""
         return self._client.table("t_vton").insert({
             "tops_id": tops_id,
-            "image_url": image_url,
+            "object_key": object_key,
         }).execute()
     
     def create_user_vton(self, user_id: str, vton_id: str, feedback_flag: int = 0):
