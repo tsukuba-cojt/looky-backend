@@ -181,7 +181,7 @@ async def get_recommendation_clothes(
         object_key = fitdit_response["object_key"]
         vton_result = db.create_vton(
             tops_id=actual_clothes_id,  # 実際のIDを使用
-            image_url=object_key
+            object_key=object_key
         )
         vton_id = vton_result.data[0]["id"]
         db.create_user_vton(
