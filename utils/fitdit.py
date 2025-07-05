@@ -15,7 +15,7 @@ async def execute_fitdit(body_image_path: str, clothes_image_path: str, clothes_
         logger.info(f"FitDit API呼び出し: {settings.fitdit_url}")
         
         response = await client.post(
-            settings.fitdit_url,
+            f"{settings.fitdit_url}/vton",
             json=request_data
         )
         
