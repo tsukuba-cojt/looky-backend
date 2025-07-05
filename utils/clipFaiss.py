@@ -20,13 +20,14 @@ def load_faiss_index(index_path):
     return index
 
 
-def retrieve_similar_images_by_vector(vector, index, top_k=10):
+def retrieve_similar_images_by_vector(vector, index, top_k=10, exclude_selector=None):
     """
     ベクトルを受け取って、類似するベクトルを返す
     args:
         vector: torch.Tensor
         index: faiss.Index
         top_k: int
+        exclude_selector: faiss.IDSelector
     returns:
         indices: list[int]
     """
@@ -36,16 +37,24 @@ def retrieve_similar_images_by_vector(vector, index, top_k=10):
         )
     else:
         query_features = np.asarray(vector, dtype=np.float32).reshape(1, -1)
+        
+    params = faiss.SearchParametersIVF()
+    params.sel = exclude_selector
 
     # 類似検索
-    distances, indices = index.search(query_features, top_k)
+    distances, indices = index.search(query_features, top_k, params=params)
+    
+    # 検索結果が空の場合の処理
+    if len(indices[0]) == 0:
+        raise ValueError("検索条件に一致する画像が見つかりませんでした")
     
     return indices[0]
 
-def mean_vector_from_ids(ids: list[int], faiss_index: faiss.Index) -> np.ndarray:
+def sum_vector_from_ids(ids: list[int], faiss_index: faiss.Index) -> np.ndarray:
     # 空のリストが渡された場合の処理
     if not ids:
-        raise ValueError("空のIDリストが渡されました")
+        # 空のリストの場合はゼロベクトルを返す
+        return np.zeros(faiss_index.d)
     
     index = faiss_index  # ← IndexIDMap が返る
 
@@ -60,7 +69,7 @@ def mean_vector_from_ids(ids: list[int], faiss_index: faiss.Index) -> np.ndarray
     # ② 外部ID → 内部連番のマップを作る
     id2internal = {int(id_): pos for pos, id_ in enumerate(stored_ids)}
 
-    # ③ 目的ベクトルを reconstruct して平均
+    # ③ 目的ベクトルを reconstruct して合計
     d = base_index.d
     buf = np.empty((len(ids), d), dtype="float32")
 
@@ -70,6 +79,27 @@ def mean_vector_from_ids(ids: list[int], faiss_index: faiss.Index) -> np.ndarray
         except KeyError:
             raise ValueError(f"id {ext_id} がインデックスに存在しません")
 
-    return buf.mean(axis=0)
+    return buf.sum(axis=0)
 
-
+def get_preference_vector(like_ids: list[int], love_ids: list[int], hate_ids: list[int], index: faiss.Index):
+    
+    # like, love, hateそれぞれのベクトル和を計算
+    like_vector = sum_vector_from_ids(faiss_index=index, ids=like_ids)
+    love_vector = sum_vector_from_ids(faiss_index=index, ids=love_ids)
+    hate_vector = sum_vector_from_ids(faiss_index=index, ids=hate_ids)
+    
+    # ベクトルは正規化されているので重みづけ和を取る
+    # like: 等倍(1倍), love: 2倍, hate: -1倍
+    vector = like_vector + (2 * love_vector) - hate_vector
+    
+    # ゼロベクトルの場合はランダムベクトルを生成
+    vector_norm = np.linalg.norm(vector)
+    if vector_norm == 0:
+        # すべてのフィードバックが空の場合、ランダムベクトルを生成
+        vector = np.random.randn(index.d).astype(np.float32)
+        vector = vector / np.linalg.norm(vector)
+    else:
+        # ベクトルを正規化
+        vector = vector / vector_norm
+    
+    return vector

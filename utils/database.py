@@ -30,9 +30,43 @@ class Database:
         """ユーザーIDでユーザー情報を取得"""
         return self._client.table("t_user").select().eq("id", user_id).execute()
     
-    def get_user_preferences(self, user_id: str):
+    def get_preferences_tops_ids(self, user_id: str):
         """ユーザーの好みデータを取得"""
-        return self._client.table("t_user_vton").select().or_("feedback.eq.like,feedback.eq.love").eq("user_id", user_id).execute()
+        result = self._client.table("t_user_vton").select("t_vton(tops_id),feedback").eq("user_id", user_id).execute()
+        
+        # フィードバック別にtops_idを分類
+        like_ids = []
+        love_ids = []
+        hate_ids = []
+        full_ids = []
+        
+        for item in result.data:
+            tops_id = item["t_vton"]["tops_id"]
+            feedback = item["feedback"]
+            
+            if feedback == "like":
+                like_ids.append(tops_id)
+            elif feedback == "love":
+                love_ids.append(tops_id)
+            elif feedback == "hate":
+                hate_ids.append(tops_id)
+            
+            # すべてのtops_idをfull_idsに追加
+            full_ids.append(tops_id)
+        
+        return (like_ids, love_ids, hate_ids, full_ids)
+    
+    def get_preference_clothes_ids_by_category(self, user_id: str, category: str):
+        """洋服IDリストを取得"""
+        if category == "Upper-body":
+            like_ids, love_ids, hate_ids, full_ids = self.get_preference_tops_ids(user_id)
+        # elif category == "Dressed":
+        #     like_ids, love_ids, hate_ids, full_ids = self.get_preference_dresses_ids(user_id)
+        # elif category == "Lower-body":
+        #     like_ids, love_ids, hate_ids, full_ids = self.get_preference_bottoms_ids(user_id)
+        else:
+            raise ValueError("Invalid category")
+        return like_ids, love_ids, hate_ids, full_ids
     
     def get_vton_by_id(self, vton_id: str):
         """VTON IDでVTON情報を取得"""
@@ -60,6 +94,13 @@ class Database:
             "vton_id": vton_id
         }).execute()
 
+    def get_clothes_ids_about_gender(self, gender: str):
+        """性別によって洋服を選ぶ"""
+        return self._client.table("t_clothes").select("id").eq("gender", gender).execute()
+    
+    def get_clothes_ids_about_category(self, category: str):
+        """カテゴリによって洋服を選ぶ"""
+        return self._client.table("t_clothes").select("id").eq("category", category).execute()
 
 # グローバルデータベースインスタンス
 db = Database()

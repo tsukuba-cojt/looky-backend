@@ -32,7 +32,6 @@ class Settings(BaseSettings):
     model_name: str = Field(default="patrickjohncyh/fashion-clip")
     
     # デフォルト設定
-    default_preference_ids: list[int] = Field(default=[129, 130])
     default_tops_id: int = Field(default=1)
     
     @computed_field

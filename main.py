@@ -8,10 +8,11 @@ import time
 import torch
 import random
 import open_clip
+import faiss
 from utils.clipFaiss import (
     retrieve_similar_images_by_vector,
     load_faiss_index,
-    mean_vector_from_ids
+    get_preference_vector
 )
 from utils.s3 import download_if_needed
 from utils.fitdit import execute_fitdit
@@ -20,8 +21,8 @@ from middlewares.middleware import verify_secret_key
 from config import settings
 from utils.database import db
 
-# ログレベルの設定（環境変数から取得、デフォルトはWARNING）
-log_level = os.getenv("LOG_LEVEL", "WARNING").upper()
+# ログレベルの設定（環境変数から取得、デフォルトはWARNING. INFO, DEBUG, ERROR, CRITICAL, NOTSET）
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -115,6 +116,7 @@ class UserIdRequest(BaseModel):
 @app.post("/user/clothes/recommend")
 async def get_recommendation_clothes(
     request: UserIdRequest,
+    # シークレットキーの検証(middleware.py)
     _: None = Depends(verify_secret_key)
 ):
     """
@@ -126,52 +128,64 @@ async def get_recommendation_clothes(
     returns:
         object_key: str
     """
+    clothes_category = "Upper-body" # "Upper-body" / "Dressed" / "Lower-body"
     
+    try:
+        clothes_ids = db.get_clothes_ids_about_category(category=clothes_category)
+        faiss_selector = faiss.IDSelectorArray(clothes_ids)
+    except Exception as e:
+        logger.error(f"カテゴリ別洋服ID取得エラー: {e}")
+        raise HTTPException(status_code=500, detail="洋服カテゴリの取得に失敗しました")
     
-    user_result = db.get_user_by_id(request.user_id)
-    if not user_result.data:
+    user = db.get_user_by_id(request.user_id)
+    if not user.data:
         raise HTTPException(status_code=400, detail="ユーザーが見つかりません")
     
-    body_object_key = user_result.data[0]["body_url"]
+    body_object_key = user.data[0]["body_url"]
     if not body_object_key:
         raise HTTPException(status_code=400, detail="body_urlがありません")
     
-    preference_result = db.get_user_preferences(request.user_id)
-    if not preference_result:
-        logger.info("いいねしたデータがありません。ランダムな洋服を推薦します")
-        preference_vector = mean_vector_from_ids(
-            faiss_index=index,
-            ids=settings.default_preference_ids
-        )
-    else:
-        vton_ids = [item["vton_id"] for item in preference_result.data]
-        clothes_ids = []
-        for vton_id in vton_ids:
-            vton_result = db.get_vton_by_id(vton_id)
-            if vton_result.data:
-                clothes_ids.append(vton_result.data[0]["tops_id"])
-        
-        # clothes_idsが空の場合はデフォルトの洋服を使用
-        if not clothes_ids:
-            logger.info("clothes_idsが空のため、デフォルトの洋服を使用します")
-            preference_vector = mean_vector_from_ids(
-                faiss_index=index,
-                ids=[129, 130, 131, 132, 133, 134, 135, 136, 137, 138]
-            )
+    # ユーザーの好みデータを取得
+    like_ids, love_ids, hate_ids, generated_full_ids = db.get_preference_clothes_ids_by_category(request.user_id, clothes_category)
+    
+    # フィードバックが不足している場合のログ
+    total_feedback = len(like_ids) + len(love_ids) + len(hate_ids)
+    if total_feedback < 3:
+        logger.info(f"ユーザー {request.user_id} のフィードバックが不足しています (総数: {total_feedback})")
+    
+    # 生成済みの洋服を除外
+    exclude_selector = faiss.IDSelectorNot(generated_full_ids)
+    faiss_selector = faiss.IDSelectorAnd([faiss_selector, exclude_selector])
+    
+    # 性別によって洋服を選ぶ
+    try:
+        if user.data[0]["gender"] == "male":
+            exclude_clothes_ids_about_gender = db.get_clothes_ids_about_gender(gender="female")
+            exclude_selector_by_gender = faiss.IDSelectorNot(exclude_clothes_ids_about_gender)
+            faiss_selector = faiss.IDSelectorAnd([faiss_selector, exclude_selector_by_gender])
+        elif user.data[0]["gender"] == "female":
+            exclude_clothes_ids_about_gender = db.get_clothes_ids_about_gender(gender="male")
+            exclude_selector_by_gender = faiss.IDSelectorNot(exclude_clothes_ids_about_gender)
+            faiss_selector = faiss.IDSelectorAnd([faiss_selector, exclude_selector_by_gender])
         else:
-            preference_vector = mean_vector_from_ids(
-                faiss_index=index,
-                ids=clothes_ids
-            )
+            logger.info(f"ユーザー {request.user_id} の性別が設定されていません")
+    except Exception as e:
+        logger.warning(f"性別フィルタリングでエラーが発生しました: {e}")
+        # 性別フィルタリングに失敗しても処理を続行
+    
+    preference_vector = get_preference_vector(like_ids, love_ids, hate_ids, index)
 
-    indices = retrieve_similar_images_by_vector(vector=preference_vector, index=index, top_k=10)
-    num_rand = random.randint(1, 9) #最も近いものは除く
+    # TODO: t_vtonが更新される前に連続して取り出しがあると、同じ洋服が出てくる可能性の対処
+    indices = retrieve_similar_images_by_vector(vector=preference_vector, index=index, top_k=10, exclude_selector=faiss_selector)
+    num_rand = random.randint(0, 9)
     indice = indices[num_rand]
-    clothes_id = db.get_clothes_by_id(indice)
-    if not clothes_id:
-        raise HTTPException(status_code=404, detail="洋服が見つかりません")
-    clothes_key = clothes_id.data[0]["image_url"]
-    actual_clothes_id = clothes_id.data[0]["id"]  # 実際のIDを取得
+
+    clothes = db.get_clothes_by_id(indice)
+    if not clothes.data:
+        raise HTTPException(status_code=400, detail="洋服が見つかりません")
+    clothes_key = clothes.data[0]["image_url"]
+    actual_clothes_id = clothes.data[0]["id"]
+    
     try:
         fitdit_response = await execute_fitdit(
             body_image_path=body_object_key,
@@ -180,7 +194,7 @@ async def get_recommendation_clothes(
         )
         object_key = fitdit_response["object_key"]
         vton_result = db.create_vton(
-            tops_id=actual_clothes_id,  # 実際のIDを使用
+            tops_id=actual_clothes_id,
             object_key=object_key
         )
         vton_id = vton_result.data[0]["id"]
@@ -189,40 +203,7 @@ async def get_recommendation_clothes(
             vton_id=vton_id
         )
     except Exception as e:
+        logger.error(f"VTON生成エラー: {e}")
         raise HTTPException(status_code=500, detail=f"VTONの生成に失敗しました: {str(e)}")
-
-    # indices = retrieve_similar_images_by_vector(vector=preference_vector, index=index, top_k=3)
-    # retrieved_images_result = db.get_clothes_by_ids(indices.tolist())
-    # retrieved_images_keys = [item["image_url"] for item in retrieved_images_result.data]
-    # object_key_list = []
-        
-    # for image_path in retrieved_images_keys:
-    #     # VTONサーバへのリクエスト
-    #     try:
-    #         fitdit_response = await execute_fitdit(
-    #                 body_image_path=body_object_key,
-    #                 clothes_image_path=image_path,
-    #                 clothes_type="Upper-body"
-    #             )
-                
-    #         object_key = fitdit_response["object_key"]
-    #         # VTONレコード作成
-    #         vton_result = db.create_vton(
-    #             tops_id=settings.default_tops_id,
-    #             image_url=object_key
-    #         )
-    #         vton_id = vton_result.data[0]["id"]
-            
-    #         # ユーザーVTONレコード作成
-    #         db.create_user_vton(
-    #             user_id=request.user_id,
-    #             vton_id=vton_id
-    #         )
-    #         object_key_list.append(object_key)
-    #     except Exception as e:
-    #         logger.error(f"リクエストの失敗: {e}")
-    #         raise HTTPException(
-    #             status_code=500,
-    #             detail=f"VTONの生成に失敗しました: {str(e)}")
     
     return {"status": "success"}
