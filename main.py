@@ -132,6 +132,8 @@ async def get_recommendation_clothes(
     
     try:
         clothes_ids = db.get_clothes_ids_about_category(category=clothes_category)
+        if not clothes_ids:
+            raise HTTPException(status_code=500, detail="指定されたカテゴリの洋服が見つかりません")
         faiss_selector = faiss.IDSelectorArray(clothes_ids)
     except Exception as e:
         logger.error(f"カテゴリ別洋服ID取得エラー: {e}")
@@ -175,10 +177,20 @@ async def get_recommendation_clothes(
     
     preference_vector = get_preference_vector(like_ids, love_ids, hate_ids, index)
 
-    # TODO: t_vtonが更新される前に連続して取り出しがあると、同じ洋服が出てくる可能性の対処
-    indices = retrieve_similar_images_by_vector(vector=preference_vector, index=index, top_k=10, exclude_selector=faiss_selector)
-    num_rand = random.randint(0, 9)
-    indice = indices[num_rand]
+    # 類似画像を検索
+    try:
+        indices = retrieve_similar_images_by_vector(vector=preference_vector, index=index, top_k=10, exclude_selector=faiss_selector)
+        if len(indices) == 0:
+            raise HTTPException(status_code=500, detail="類似する洋服が見つかりません")
+        
+        num_rand = random.randint(0, min(9, len(indices) - 1))
+        indice = indices[num_rand]
+    except ValueError as e:
+        logger.error(f"類似画像検索エラー: {e}")
+        raise HTTPException(status_code=500, detail="類似する洋服が見つかりません")
+    except Exception as e:
+        logger.error(f"類似画像検索エラー: {e}")
+        raise HTTPException(status_code=500, detail="類似画像の検索に失敗しました")
 
     clothes = db.get_clothes_by_id(indice)
     if not clothes.data:

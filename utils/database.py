@@ -96,11 +96,13 @@ class Database:
 
     def get_clothes_ids_about_gender(self, gender: str):
         """性別によって洋服を選ぶ"""
-        return self._client.table("t_clothes").select("id").eq("gender", gender).execute()
+        result = self._client.table("t_clothes").select("id").eq("gender", gender).execute()
+        return [item["id"] for item in result.data]
     
     def get_clothes_ids_about_category(self, category: str):
         """カテゴリによって洋服を選ぶ"""
-        return self._client.table("t_clothes").select("id").eq("category", category).execute()
+        result = self._client.table("t_clothes").select("id").eq("category", category).execute()
+        return [item["id"] for item in result.data]
 
 # グローバルデータベースインスタンス
 db = Database()
