@@ -30,7 +30,7 @@ class Database:
         """ユーザーIDでユーザー情報を取得"""
         return self._client.table("t_user").select().eq("id", user_id).execute()
     
-    def get_preferences_tops_ids(self, user_id: str):
+    def get_preference_tops_ids(self, user_id: str):
         """ユーザーの好みデータを取得"""
         result = self._client.table("t_user_vton").select("t_vton(tops_id),feedback").eq("user_id", user_id).execute()
         
