@@ -157,21 +157,21 @@ async def get_recommendation_clothes(
     
     # 生成済みの洋服を除外
     if generated_full_ids:
-        exclude_selector = faiss.IDSelectorNot(generated_full_ids)
-        faiss_selector = faiss.IDSelectorAnd([faiss_selector, exclude_selector])
+        exclude_selector = faiss.IDSelectorNot(faiss.IDSelectorArray(generated_full_ids))
+        faiss_selector = faiss.IDSelectorAnd(faiss_selector, exclude_selector)
     
     # 性別によって洋服を選ぶ
     try:
         if user.data[0]["gender"] == "male":
             exclude_clothes_ids_about_gender = db.get_clothes_ids_about_gender(gender="female")
             if exclude_clothes_ids_about_gender:
-                exclude_selector_by_gender = faiss.IDSelectorNot(exclude_clothes_ids_about_gender)
-                faiss_selector = faiss.IDSelectorAnd([faiss_selector, exclude_selector_by_gender])
+                exclude_selector_by_gender = faiss.IDSelectorNot(faiss.IDSelectorArray(exclude_clothes_ids_about_gender))
+                faiss_selector = faiss.IDSelectorAnd(faiss_selector, exclude_selector_by_gender)
         elif user.data[0]["gender"] == "female":
             exclude_clothes_ids_about_gender = db.get_clothes_ids_about_gender(gender="male")
             if exclude_clothes_ids_about_gender:
-                exclude_selector_by_gender = faiss.IDSelectorNot(exclude_clothes_ids_about_gender)
-                faiss_selector = faiss.IDSelectorAnd([faiss_selector, exclude_selector_by_gender])
+                exclude_selector_by_gender = faiss.IDSelectorNot(faiss.IDSelectorArray(exclude_clothes_ids_about_gender))
+                faiss_selector = faiss.IDSelectorAnd(faiss_selector, exclude_selector_by_gender)
         else:
             logger.info(f"ユーザー {request.user_id} の性別が設定されていません")
     except Exception as e:
