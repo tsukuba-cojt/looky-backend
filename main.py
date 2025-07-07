@@ -115,7 +115,7 @@ def read_root():
 class UserIdRequest(BaseModel):
     user_id: str
 
-@app.post("/user/clothes/recommend")
+@app.post("/recommend")
 async def get_recommendation_clothes(
     request: UserIdRequest,
     # シークレットキーの検証(middleware.py)
