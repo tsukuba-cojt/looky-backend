@@ -21,6 +21,6 @@ async def execute_fitdit(body_image_path: str, clothes_image_path: str, clothes_
         
         response.raise_for_status()
         response_data = response.json()
-        print(f"FitDit API レスポンス型: {type(response_data)}")
-        print(f"FitDit API レスポンス内容: {response_data}")
+        logger.info(f"FitDit API レスポンス型: {type(response_data)}")
+        logger.info(f"FitDit API レスポンス内容: {response_data}")
         return response_data
