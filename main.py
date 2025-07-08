@@ -127,6 +127,7 @@ async def get_recommendation_clothes(
     args:
         request: UserIdRequest{
             user_id: str
+            clothes_category: str
         }
     returns:
         object_key: str
