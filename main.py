@@ -114,6 +114,7 @@ def read_root():
 
 class UserIdRequest(BaseModel):
     user_id: str
+    clothes_category: str
 
 @app.post("/recommend")
 async def get_recommendation_clothes(
@@ -135,7 +136,7 @@ async def get_recommendation_clothes(
     # リクエストから好みベクトルを生成
     #########################################################
     
-    clothes_category = "Upper-body" # "Upper-body" / "Dressed" / "Lower-body"
+    clothes_category = request.clothes_category # "Upper-body" / "Dressed" / "Lower-body"
     
     # ユーザー情報取得
     user = db.get_user_by_id(request.user_id)
