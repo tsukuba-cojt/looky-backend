@@ -223,9 +223,9 @@ async def get_recommendation_clothes(
     
     try:
         fitdit_response = await execute_fitdit(
-            body_image_path=body_object_key,
-            clothes_image_path=clothes_key,
-            clothes_type="Upper-body"
+            body_object_key=body_object_key,
+            clothes_object_key=clothes_key,
+            clothes_type=clothes_category
         )
         object_key = fitdit_response["object_key"]
         vton_result = db.create_vton(
