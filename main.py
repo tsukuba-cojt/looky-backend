@@ -161,7 +161,7 @@ async def get_recommendation_clothes(
     try:
         clothes_ids = db.get_clothes_ids_about_category(category=clothes_category)
         if not clothes_ids:
-            raise HTTPException(status_code=500, detail="指定されたカテゴリの洋服が見つかりません")
+            raise HTTPException(status_code=400, detail="指定されたカテゴリの洋服が見つかりません")
         faiss_selector = faiss.IDSelectorArray(clothes_ids)
     except Exception as e:
         logger.error(f"カテゴリ別洋服ID取得エラー: {e}")
