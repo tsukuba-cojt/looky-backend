@@ -17,6 +17,7 @@ def load_faiss_index(index_path):
     """
     if not os.path.exists(index_path):
         raise FileNotFoundError(f"Index file not found: {index_path}")
+    
     index = faiss.read_index(index_path)
     logger.info(f"Index loaded from {index_path}")
     return index
@@ -53,12 +54,19 @@ def retrieve_similar_images_by_vector(vector, index, top_k=10, exclude_selector=
     return indices[0]
 
 def sum_vector_from_ids(ids: list[int], faiss_index: faiss.Index) -> np.ndarray:
-    # 空のリストが渡された場合の処理
+    """
+    洋服IDリストでベクトルを合計する
+    args:
+        ids: list[int]
+        faiss_index: faiss.Index
+    returns:
+        vector: np.ndarray
+    """
     if not ids:
         # 空のリストの場合はゼロベクトルを返す
         return np.zeros(faiss_index.d)
     
-    index = faiss_index  # ← IndexIDMap が返る
+    index = faiss_index
 
     # ① IndexIDMap だったら中身を取り出す
     if isinstance(index, (faiss.IndexIDMap, faiss.IndexIDMap2)):
@@ -84,7 +92,16 @@ def sum_vector_from_ids(ids: list[int], faiss_index: faiss.Index) -> np.ndarray:
     return buf.sum(axis=0)
 
 def get_preference_vector(like_ids: list[int], love_ids: list[int], hate_ids: list[int], index: faiss.Index):
-    
+    """
+    フィードバックによる好みベクトルを生成
+    args:
+        like_ids: list[int]
+        love_ids: list[int]
+        hate_ids: list[int]
+        index: faiss.Index
+    returns:
+        vector: np.ndarray
+    """
     # like, love, hateそれぞれのベクトル和を計算
     like_vector = sum_vector_from_ids(faiss_index=index, ids=like_ids)
     love_vector = sum_vector_from_ids(faiss_index=index, ids=love_ids)

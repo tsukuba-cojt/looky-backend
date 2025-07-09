@@ -1,27 +1,28 @@
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware import Middleware
 import asyncio
+import faiss
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware import Middleware
+from fastapi.middleware.cors import CORSMiddleware
 import logging
+import open_clip
 import os
+from pydantic import BaseModel
+import random
 import time
 import torch
-import random
-import open_clip
-import faiss
+
+from core.config import settings
+from middlewares.middleware import verify_secret_key
 from utils.clipFaiss import (
     retrieve_similar_images_by_vector,
     load_faiss_index,
     get_preference_vector
 )
-from utils.s3 import download_if_needed
-from utils.fitdit import execute_fitdit
-from pydantic import BaseModel
-from middlewares.middleware import verify_secret_key
-from core.config import settings
 from utils.database import db
+from utils.fitdit import execute_fitdit
+from utils.s3 import download_if_needed
 
-# ログレベルの設定（環境変数から取得、デフォルトはWARNING. INFO, DEBUG, ERROR, CRITICAL, NOTSET）
+# ログレベルの設定（デフォルトはWARNING. INFO, DEBUG, ERROR, CRITICAL, NOTSET）
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level),
@@ -48,11 +49,11 @@ app = FastAPI(
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # モデルとプロセッサのロード
-model = None
+model            = None
 preprocess_train = None
-preprocess_val = None
-tokenizer = None
-index = None
+preprocess_val   = None
+tokenizer        = None
+index            = None
 
 @app.on_event("startup")
 async def startup_event():
@@ -76,7 +77,7 @@ async def startup_event():
         logger.info("STARTUP: モデルロード開始")
         model_and_preprocess, tokenizer = await asyncio.gather(
             asyncio.to_thread(open_clip.create_model_and_transforms, 'hf-hub:Marqo/marqo-fashionSigLIP'),
-            asyncio.to_thread(open_clip.get_tokenizer, 'hf-hub:Marqo/marqo-fashionSigLIP')
+            asyncio.to_thread(open_clip.get_tokenizer              , 'hf-hub:Marqo/marqo-fashionSigLIP')
         )
         model, preprocess_train, preprocess_val = model_and_preprocess
         model = model.to(device)
@@ -113,7 +114,7 @@ def read_root():
 #--------------------
 
 class UserIdRequest(BaseModel):
-    user_id: str
+    user_id:          str
     clothes_category: str
 
 @app.post("/recommend")
@@ -126,7 +127,7 @@ async def get_recommendation_clothes(
     リクエストからユーザの好みに合った洋服を推薦し、VTONの画像を生成する
     args:
         request: UserIdRequest{
-            user_id: str
+            user_id:          str
             clothes_category: str
         }
     returns:
@@ -144,12 +145,12 @@ async def get_recommendation_clothes(
     if not user.data:
         raise HTTPException(status_code=400, detail="ユーザーが見つかりません")
     
-    # ユーザーの体の画像を取得
+    # ユーザーの全身画像を取得
     body_object_key = user.data[0]["body_url"]
     if not body_object_key:
         raise HTTPException(status_code=400, detail="body_urlがありません")
     
-    # ユーザーの好みデータを取得し、検索用の好みベクトルを生成
+    # ユーザーのフィードバックを取得し、検索用の好みベクトルを生成
     like_ids, love_ids, hate_ids, generated_full_ids = db.get_preference_clothes_ids_by_category(request.user_id, clothes_category)
     preference_vector = get_preference_vector(like_ids, love_ids, hate_ids, index)
     
@@ -170,7 +171,7 @@ async def get_recommendation_clothes(
     # 生成済みの洋服を除外
     if generated_full_ids:
         exclude_selector = faiss.IDSelectorNot(faiss.IDSelectorArray(generated_full_ids))
-        faiss_selector = faiss.IDSelectorAnd(faiss_selector, exclude_selector)
+        faiss_selector   = faiss.IDSelectorAnd(faiss_selector, exclude_selector)
     
     # 性別によって洋服をフィルタリング
     try:
@@ -178,12 +179,12 @@ async def get_recommendation_clothes(
             exclude_clothes_ids_about_gender = db.get_clothes_ids_about_gender(gender="woman")
             if exclude_clothes_ids_about_gender:
                 exclude_selector_by_gender = faiss.IDSelectorNot(faiss.IDSelectorArray(exclude_clothes_ids_about_gender))
-                faiss_selector = faiss.IDSelectorAnd(faiss_selector, exclude_selector_by_gender)
+                faiss_selector             = faiss.IDSelectorAnd(faiss_selector, exclude_selector_by_gender)
         elif user.data[0]["gender"] == "woman":
             exclude_clothes_ids_about_gender = db.get_clothes_ids_about_gender(gender="man")
             if exclude_clothes_ids_about_gender:
                 exclude_selector_by_gender = faiss.IDSelectorNot(faiss.IDSelectorArray(exclude_clothes_ids_about_gender))
-                faiss_selector = faiss.IDSelectorAnd(faiss_selector, exclude_selector_by_gender)
+                faiss_selector             = faiss.IDSelectorAnd(faiss_selector, exclude_selector_by_gender)
         else:
             logger.info(f"ユーザー {request.user_id} の性別が設定されていません")
     except Exception as e:
@@ -195,7 +196,7 @@ async def get_recommendation_clothes(
     # 類似画像を検索
     #########################################################
     
-    # 類似画像からランダムに1つ選択
+    # 類似画像からランダムに1つ選択. 毎回トップだと偏ってしまうので.
     try:
         similar_clothes_ids = retrieve_similar_images_by_vector(vector=preference_vector, index=index, top_k=10, exclude_selector=faiss_selector)
         if len(similar_clothes_ids) == 0:
