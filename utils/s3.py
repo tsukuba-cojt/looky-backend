@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 s3_client = boto3.client(
     "s3", 
     region_name=settings.aws_region_name, 
-    aws_access_key_id=settings.aws_iam_access_key, 
-    aws_secret_access_key=settings.aws_iam_secret_key
+    aws_access_key_id=settings.aws_access_key, 
+    aws_secret_access_key=settings.aws_secret_key
 )
 
 def get_image_from_s3(bucket_name: str, object_key: str) -> bytes:
@@ -52,8 +52,8 @@ def generate_presigned_url_for_get(bucket_name: str, object_key: str, expiration
     s3_client = boto3.client(
         "s3", 
         region_name=settings.aws_region_name, 
-        aws_access_key_id=settings.aws_iam_access_key, 
-        aws_secret_access_key=settings.aws_iam_secret_key
+        aws_access_key_id=settings.aws_access_key, 
+        aws_secret_access_key=settings.aws_secret_key
     )
 
     url = s3_client.generate_presigned_url(
@@ -67,8 +67,8 @@ def generate_presigned_url_for_upload(bucket_name: str, object_key: str, expirat
     s3_client = boto3.client(
         "s3", 
         region_name=settings.aws_region_name, 
-        aws_access_key_id=settings.aws_iam_access_key, 
-        aws_secret_access_key=settings.aws_iam_secret_key
+        aws_access_key_id=settings.aws_access_key, 
+        aws_secret_access_key=settings.aws_secret_key
     )
     
     url = s3_client.generate_presigned_url(
@@ -107,9 +107,9 @@ def download_if_needed(bucket_name: str, object_key: str, local_path: str) -> No
         logger.info(f"[startup] {local_path} は既に存在します")
         return
     session = boto3.Session(
-        aws_access_key_id=settings.aws_iam_access_key,
-        aws_secret_access_key=settings.aws_iam_secret_key,
-        region_name=settings.aws_region_name,
+        aws_access_key_id=settings.aws_access_key,
+        aws_secret_access_key=settings.aws_secret_key,
+        region_name=settings.aws_region_name
     )
     s3 = session.resource("s3")
     try:

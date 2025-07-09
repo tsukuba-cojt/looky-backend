@@ -11,15 +11,15 @@ class Settings(BaseSettings):
     
     # AWS設定
     aws_region_name: str = Field(default="us-east-1", env="AWS_REGION_NAME")
-    aws_iam_access_key: str = Field(..., env="AWS_ACCESS_KEY")
-    aws_iam_secret_key: str = Field(..., env="AWS_SECRET_KEY")
+    aws_access_key: str = Field(..., env="AWS_ACCESS_KEY")
+    aws_secret_key: str = Field(..., env="AWS_SECRET_KEY")
     
     # S3設定
-    aws_s3_clothes_bucket_name: str = Field(..., env="AWS_CLOTHES_BUCKET_NAME")
-    aws_s3_vton_bucket_name: str = Field(..., env="AWS_VTON_BUCKET_NAME")
-    aws_s3_index_bucket_name: str = Field(..., env="AWS_INDEX_BUCKET_NAME")
-    aws_s3_body_image_bucket_name: str = Field(..., env="AWS_BODY_BUCKET_NAME")
-    aws_s3_index_key_name: str = Field(..., env="AWS_FAISS_INDEX_NAME")
+    aws_clothes_bucket_name: str = Field(..., env="AWS_CLOTHES_BUCKET_NAME")
+    aws_vton_bucket_name: str = Field(..., env="AWS_VTON_BUCKET_NAME")
+    aws_index_bucket_name: str = Field(..., env="AWS_INDEX_BUCKET_NAME")
+    aws_body_image_bucket_name: str = Field(..., env="AWS_BODY_BUCKET_NAME")
+    aws_faiss_index_name: str = Field(..., env="AWS_FAISS_INDEX_NAME")
     
     # アプリケーション設定
     log_level: str = Field(default="WARNING", env="LOG_LEVEL")

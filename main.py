@@ -67,8 +67,8 @@ async def startup_event():
         
         logger.info("STARTUP: S3ダウンロード開始")
         download_if_needed(
-            settings.aws_s3_index_bucket_name,
-            settings.aws_s3_index_key_name,
+            settings.aws_index_bucket_name,
+            settings.aws_faiss_index_name,
             settings.local_index_path
         )
         logger.info("STARTUP: S3ダウンロード完了")

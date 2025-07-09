@@ -3,9 +3,10 @@ import torch
 import os
 import numpy as np
 import logging
+from core.config import settings
 logger = logging.getLogger(__name__)
 
-S3_CLOTHES_BUCKET_NAME = os.getenv("AWS_S3_CLOTHES_BUCKET_NAME")
+S3_CLOTHES_BUCKET_NAME = settings.aws_clothes_bucket_name
 
 def load_faiss_index(index_path):
     """
