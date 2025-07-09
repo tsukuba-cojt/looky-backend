@@ -215,7 +215,7 @@ async def get_recommendation_clothes(
     clothes = db.get_clothes_by_id(similar_clothes_id)
     if not clothes.data:
         raise HTTPException(status_code=500, detail="洋服が見つかりません")
-    clothes_key = clothes.data[0]["image_url"]
+    clothes_key = clothes.data[0]["object_key"]
     actual_clothes_id = clothes.data[0]["id"]
     
     #########################################################
