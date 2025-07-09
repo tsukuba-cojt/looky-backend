@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     aws_clothes_bucket_name: str = Field(..., env="AWS_CLOTHES_BUCKET_NAME")
     aws_vton_bucket_name: str = Field(..., env="AWS_VTON_BUCKET_NAME")
     aws_index_bucket_name: str = Field(..., env="AWS_INDEX_BUCKET_NAME")
-    aws_body_image_bucket_name: str = Field(..., env="AWS_BODY_BUCKET_NAME")
+    aws_body_bucket_name: str = Field(..., env="AWS_BODY_BUCKET_NAME")
     aws_faiss_index_name: str = Field(..., env="AWS_FAISS_INDEX_NAME")
     
     # アプリケーション設定
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     @property
     def local_index_path(self) -> str:
         """ローカルインデックスパスを計算"""
-        return f"../tmp/{self.aws_s3_index_key_name}"
+        return f"../tmp/{self.aws_faiss_index_name}"
     
     class Config:
         env_file = ".env"
