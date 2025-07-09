@@ -18,7 +18,7 @@ from utils.s3 import download_if_needed
 from utils.fitdit import execute_fitdit
 from pydantic import BaseModel
 from middlewares.middleware import verify_secret_key
-from config import settings
+from core.config import settings
 from utils.database import db
 
 # ログレベルの設定（環境変数から取得、デフォルトはWARNING. INFO, DEBUG, ERROR, CRITICAL, NOTSET）

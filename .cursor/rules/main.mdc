@@ -1,0 +1,7 @@
+---
+description: project rules
+globs: /*
+alwaysApply: false
+---
+- 現時点でテストについては考えなくて良いです。
+- 

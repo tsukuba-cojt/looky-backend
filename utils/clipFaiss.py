@@ -2,6 +2,8 @@ import faiss
 import torch
 import os
 import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 S3_CLOTHES_BUCKET_NAME = os.getenv("AWS_S3_CLOTHES_BUCKET_NAME")
 
@@ -16,7 +18,7 @@ def load_faiss_index(index_path):
     if not os.path.exists(index_path):
         raise FileNotFoundError(f"Index file not found: {index_path}")
     index = faiss.read_index(index_path)
-    print(f"Index loaded from {index_path}")
+    logger.info(f"Index loaded from {index_path}")
     return index
 
 

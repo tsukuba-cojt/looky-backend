@@ -1,6 +1,6 @@
 from supabase import create_client, Client
 from typing import Optional
-from config import settings
+from core.config import settings
 
 
 class Database:

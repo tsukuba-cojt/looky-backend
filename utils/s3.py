@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError, BotoCoreError, NoCredentialsError
 import logging
 import os
 import requests
-from config import settings
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,8 @@ def upload_file_to_s3(presigned_url: str, image_data: bytes):
     """
     try:
         response = requests.put(presigned_url, data=image_data)
-        print("response in upload_file_to_s3", response)
+        logger.info(f"response in upload_file_to_s3: {response}")
+        logger.info(f"response.status_code in upload_file_to_s3: {response.status_code}")
     except Exception as e:
         raise Exception(f"Failed to upload file to S3: {e}")
     if response.status_code != 200:
@@ -103,7 +104,7 @@ def upload_file_to_s3(presigned_url: str, image_data: bytes):
 def download_if_needed(bucket_name: str, object_key: str, local_path: str) -> None:
     """ローカルに index が無ければ S3 から持ってくる"""
     if os.path.exists(local_path):
-        print(f"[startup] {local_path} already exists")
+        logger.info(f"[startup] {local_path} は既に存在します")
         return
     session = boto3.Session(
         aws_access_key_id=settings.aws_iam_access_key,
@@ -112,13 +113,13 @@ def download_if_needed(bucket_name: str, object_key: str, local_path: str) -> No
     )
     s3 = session.resource("s3")
     try:
-        print(f"[startup] downloading {bucket_name}/{object_key} -> {local_path}")
+        logger.info(f"[startup] downloading {bucket_name}/{object_key} -> {local_path}")
         s3.Bucket(bucket_name).download_file(object_key, local_path)
         
         # ダウンロード完了を確認
         if os.path.exists(local_path):
             file_size = os.path.getsize(local_path)
-            print(f"[startup] download completed: {bucket_name}/{object_key} -> {local_path} (size: {file_size} bytes)")
+            logger.info(f"[startup] download completed: {bucket_name}/{object_key} -> {local_path} (size: {file_size} bytes)")
         else:
             raise RuntimeError(f"Download failed: {local_path} does not exist after download")
             

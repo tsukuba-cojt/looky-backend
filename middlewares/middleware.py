@@ -1,5 +1,5 @@
 from fastapi import Header, HTTPException, status
-from config import settings
+from core.config import settings
 
 async def verify_secret_key(x_internal_secret: str = Header(...)):
     """
