@@ -129,6 +129,7 @@ async def get_recommendation_clothes(
         request: UserIdRequest{
             user_id:          str
             clothes_category: str
+            task_id : int
         }
     returns:
         object_key: str
@@ -138,7 +139,7 @@ async def get_recommendation_clothes(
     # リクエストから好みベクトルを生成
     #########################################################
     
-    clothes_category = request.clothes_category # "Upper-body" / "Dressed" / "Lower-body"
+    clothes_part = request.clothes_category # "Upper-body" / "Dressed" / "Lower-body"
     
     # ユーザー情報取得
     user = db.get_user_by_id(request.user_id)
@@ -151,7 +152,7 @@ async def get_recommendation_clothes(
         raise HTTPException(status_code=400, detail="body_urlがありません")
     
     # ユーザーのフィードバックを取得し、検索用の好みベクトルを生成
-    like_ids, love_ids, hate_ids, generated_full_ids = db.get_preference_clothes_ids_by_category(request.user_id, clothes_category)
+    like_ids, love_ids, hate_ids, generated_full_ids = db.get_preference_clothes_ids_by_clothes_part(request.user_id, clothes_part)
     preference_vector = get_preference_vector(like_ids, love_ids, hate_ids, index)
     
     #########################################################
@@ -160,7 +161,7 @@ async def get_recommendation_clothes(
     
     # 洋服カテゴリ別洋服ID取得
     try:
-        clothes_ids = db.get_clothes_ids_about_category(category=clothes_category)
+        clothes_ids = db.get_clothes_ids_about_clothes_part(clothes_part=clothes_part)
         if not clothes_ids:
             raise HTTPException(status_code=400, detail="指定されたカテゴリの洋服が見つかりません")
         faiss_selector = faiss.IDSelectorArray(clothes_ids)
@@ -226,7 +227,7 @@ async def get_recommendation_clothes(
         fitdit_response = await execute_fitdit(
             body_object_key=body_object_key,
             clothes_object_key=clothes_key,
-            clothes_type=clothes_category
+            clothes_type=clothes_part
         )
         object_key = fitdit_response["object_key"]
         vton_result = db.create_vton(

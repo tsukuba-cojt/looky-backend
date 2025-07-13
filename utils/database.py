@@ -56,16 +56,16 @@ class Database:
         
         return (like_ids, love_ids, hate_ids, full_ids)
     
-    def get_preference_clothes_ids_by_category(self, user_id: str, category: str):
+    def get_preference_clothes_ids_by_clothes_part(self, user_id: str, clothes_part: str):
         """洋服IDリストを取得"""
-        if category == "Upper-body":
+        if clothes_part == "Upper-body":
             like_ids, love_ids, hate_ids, full_ids = self.get_preference_tops_ids(user_id)
-        # elif category == "Dressed":
+        # elif clothes_part == "Dressed":
         #     like_ids, love_ids, hate_ids, full_ids = self.get_preference_dresses_ids(user_id)
-        # elif category == "Lower-body":
+        # elif clothes_part == "Lower-body":
         #     like_ids, love_ids, hate_ids, full_ids = self.get_preference_bottoms_ids(user_id)
         else:
-            raise ValueError("Invalid category")
+            raise ValueError("Invalid clothes_part")
         return like_ids, love_ids, hate_ids, full_ids
     
     def get_vton_by_id(self, vton_id: str):
@@ -99,9 +99,9 @@ class Database:
         result = self._client.table("t_clothes").select("id").eq("gender", gender).execute()
         return [item["id"] for item in result.data]
     
-    def get_clothes_ids_about_category(self, category: str):
+    def get_clothes_ids_about_clothes_part(self, clothes_part: str):
         """カテゴリによって洋服を選ぶ"""
-        result = self._client.table("t_clothes").select("id").eq("category", category).execute()
+        result = self._client.table("t_clothes").select("id").eq("part", clothes_part).execute()
         return [item["id"] for item in result.data]
 
 # グローバルデータベースインスタンス
